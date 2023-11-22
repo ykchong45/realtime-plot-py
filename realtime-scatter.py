@@ -1,45 +1,63 @@
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import numpy as np
-import random
 import time
+import random
 
-# Initialize data
-buffer_size = 100  # Number of data points to display
-currentIdx = 0
-x_buffer = np.empty(shape=(buffer_size))
-y_buffer = np.empty(shape=(buffer_size))
+# configurables
+buffer_size= 1000    # number of data in across the horizontal axis 
+fpsTestSize = 1000  # every `fpsTestSize` of frames we re-evaluate the fps
+fpsReportRate = 100 # every `fpsReportRate` count of frames, the program report the fps once
 
-fig, ax = plt.subplots()  # Use a single set of axes
-ax.set_xlim([-1, 1])
+# START
+x = np.linspace(0, 10, buffer_size)
+y = np.zeros(buffer_size)
+fig, ax = plt.subplots()
 ax.set_ylim([-1, 1])
+sc = ax.scatter(x, y, animated=True)
 
-# Use scatter plot instead of line plot
-sc = ax.scatter(x_buffer, y_buffer)
-sc2 = ax.scatter(x_buffer, y_buffer)
+plt.title("Sine Wave Scatter Plot")
+plt.show(block=False)
+plt.pause(0.1)
 
-nCount = 0
-tStart = time.time()
+bg = fig.canvas.copy_from_bbox(ax.get_figure().bbox)
 
-def update_buffer():
-    currentIdx = nCount % buffer_size
-    x_buffer[currentIdx] = random.uniform(-1, 1)
-    y_buffer[currentIdx] = random.uniform(-1, 1)
-    currentIdx += 1
+ax.draw_artist(sc)
+
+fig.canvas.blit(fig.clipbox)
+old_fig_size = fig.get_size_inches()
+
+tStart = 0
+fpsTestStartFrame = 0
+
+for j in range(10000):
+    ## RESPONSE TO RESIZING THE WINDOW
+    if (old_fig_size != fig.get_size_inches()).any():
+        bg = fig.canvas.copy_from_bbox(fig.bbox)   
+        old_fig_size = fig.get_size_inches()
+    fig.canvas.restore_region(bg)
+
+
+    # generate data and shift
+    # newXData = random.uniform(0.8, 1.2)
+    newYData = np.sin(j * 2 * np.pi / buffer_size)
+    if j < buffer_size:
+        y[j] = newYData
+    else:
+        # insertIdx = j % buffer_size
+        y = np.roll(y, -1)
+        y[-1] = newYData
     
-
-def animate(i):
-    update_buffer()
-    global nCount
-    nCount += 1
-    fps = nCount / (time.time() - tStart)
-    print(fps)
-    # Set the data for the scatter plot
-    sc.set_offsets(np.column_stack((x_buffer, y_buffer)))
-    sc2.set_offsets(np.column_stack((x_buffer + 0.01, y_buffer + 0.01)))
-
-    return sc, sc2
-
-# We'd normally specify a reasonable "interval" here...
-ani = animation.FuncAnimation(fig, animate, interval=1, blit=True)
-plt.show()
+    sc.set_offsets(np.column_stack((x, y)))
+    ax.draw_artist(sc)
+    fig.canvas.blit(fig.clipbox)
+    fig.canvas.flush_events()
+    
+    # calculate fps with test range
+    if j % fpsTestSize == 0:
+        tStart = time.time()
+        fpsTestStartFrame = j
+    if j % fpsReportRate == 0:
+        elapsedTime = time.time() - tStart
+        if elapsedTime:
+            fps = (j - fpsTestStartFrame) / elapsedTime
+            print(fps)
