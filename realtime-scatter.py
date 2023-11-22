@@ -1,46 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-import math
 
-## uncomment the following import when you are subscribing to zmq endpoint
-# import zmq
-# import stream_data_pb2 as stream_data
-
-## EXAMPLE DATA SOURCES
-
-class DataGenerator:
-    def __init__(self):
-        self.x = 0
-
-    def get_data(self):
-        self.x += 1
-        y = math.sin(self.x * 2 * math.pi / 1000)
-        return self.x, y
-    
-# class ZMQDataReceiver:
-#     def __init__(self, endpoint=7000):
-#         self.endpoint = endpoint
-#         self.context = zmq.Context()
-#         self.socket = self.initialize_socket()
-
-#     def initialize_socket(self):
-#         socket = self.context.socket(zmq.SUB)
-#         socket.connect('tcp://localhost:{}'.format(self.endpoint))
-#         socket.subscribe(b'')
-#         socket.RCVTIMEO = 1000
-#         return socket
-
-#     def get_data(self):
-#         data = self.socket.recv()
-#         message = stream_data.StreamData()
-#         message.ParseFromString(data)
-
-#         # edit the following line when using
-#         newDataTime = message.optical_data.recorded_time / 6000000
-#         data_point_y = message.optical_data.position.x  # edit this when using
-#         return newDataTime, data_point_y
-    
+## IMPORT DATA SOURCE
+## you can create your own data source with reference to data_sources/fake_data_source.py
+from data_sources.dummy_data_source import DummyDataSource
+# from data_sources.zmq_data_source import ZMQDataSource
 
 ## REALTIME SCATTER PLOT DEFINITION
 
@@ -113,14 +78,16 @@ class RealTimeScatterPlot:
 
         self.calculate_fps(i)
 
-    def run(self, max_iterations=10000):
-        for i in range(max_iterations):
+    def run(self):
+        i = 0
+        while True:
             newDataTime, data_point_y = self.fetch_data_fn()
             self.update_plot(newDataTime, data_point_y, i)
+            i += 1
 
 ## Usage
 if __name__ == "__main__":
-    data_generator = DataGenerator()
-    # data_generator = ZMQDataReceiver()
-    real_time_plot = RealTimeScatterPlot(data_generator.get_data)
+    data_source = DummyDataSource()
+    # data_source = ZMQDataSource(7002)
+    real_time_plot = RealTimeScatterPlot(data_source.get_data, ylim=[-180, 180])
     real_time_plot.run()
