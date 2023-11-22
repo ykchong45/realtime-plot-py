@@ -1,6 +1,11 @@
 import zmq
 import stream_data_pb2 as stream_data
 
+"""
+This is a Protobuf over ZMQ data source. 
+To use it you need a generated protobuf file for Python to use in the root level
+"""
+
 class ZMQDataSource:
     def __init__(self, endpoint=7000):
         self.endpoint = endpoint
