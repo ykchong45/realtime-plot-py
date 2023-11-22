@@ -3,16 +3,46 @@ import numpy as np
 import time
 import math
 
+## uncomment the following import when you are subscribing to zmq endpoint
+# import zmq
+# import stream_data_pb2 as stream_data
+
+## EXAMPLE DATA SOURCES
+
 class DataGenerator:
     def __init__(self):
         self.x = 0
-
 
     def get_data(self):
         self.x += 1
         y = math.sin(self.x * 2 * math.pi / 1000)
         return self.x, y
+    
+# class ZMQDataReceiver:
+#     def __init__(self, endpoint=7000):
+#         self.endpoint = endpoint
+#         self.context = zmq.Context()
+#         self.socket = self.initialize_socket()
 
+#     def initialize_socket(self):
+#         socket = self.context.socket(zmq.SUB)
+#         socket.connect('tcp://localhost:{}'.format(self.endpoint))
+#         socket.subscribe(b'')
+#         socket.RCVTIMEO = 1000
+#         return socket
+
+#     def get_data(self):
+#         data = self.socket.recv()
+#         message = stream_data.StreamData()
+#         message.ParseFromString(data)
+
+#         # edit the following line when using
+#         newDataTime = message.optical_data.recorded_time / 6000000
+#         data_point_y = message.optical_data.position.x  # edit this when using
+#         return newDataTime, data_point_y
+    
+
+## REALTIME SCATTER PLOT DEFINITION
 
 class RealTimeScatterPlot:
     def __init__(self, fetch_data_fn, buffer_size=1000, fps_sample_size=1000, fps_report_rate=100, xlim=[-1000, 10], ylim=[-1, 1]):
@@ -88,8 +118,9 @@ class RealTimeScatterPlot:
             newDataTime, data_point_y = self.fetch_data_fn()
             self.update_plot(newDataTime, data_point_y, i)
 
-# Usage
+## Usage
 if __name__ == "__main__":
     data_generator = DataGenerator()
+    # data_generator = ZMQDataReceiver()
     real_time_plot = RealTimeScatterPlot(data_generator.get_data)
     real_time_plot.run()
