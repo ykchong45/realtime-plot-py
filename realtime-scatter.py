@@ -7,15 +7,16 @@ class DataGenerator:
     def __init__(self):
         self.x = 0
 
-    def output_data(self):
+
+    def get_data(self):
         self.x += 1
         y = math.sin(self.x * 2 * math.pi / 1000)
         return self.x, y
 
 
 class RealTimeScatterPlot:
-    def __init__(self, data_source, buffer_size=1000, fps_sample_size=1000, fps_report_rate=100, xlim=[-1000, 10], ylim=[-1, 1]):
-        self.data_source = data_source
+    def __init__(self, fetch_data_fn, buffer_size=1000, fps_sample_size=1000, fps_report_rate=100, xlim=[-1000, 10], ylim=[-1, 1]):
+        self.fetch_data_fn = fetch_data_fn
         self.buffer_size = buffer_size
         self.fps_sample_size = fps_sample_size
         self.fps_report_rate = fps_report_rate
@@ -84,11 +85,11 @@ class RealTimeScatterPlot:
 
     def run(self, max_iterations=10000):
         for i in range(max_iterations):
-            newDataTime, data_point_y = self.data_source.output_data()
+            newDataTime, data_point_y = self.fetch_data_fn()
             self.update_plot(newDataTime, data_point_y, i)
 
 # Usage
 if __name__ == "__main__":
     data_generator = DataGenerator()
-    real_time_plot = RealTimeScatterPlot(data_generator)
+    real_time_plot = RealTimeScatterPlot(data_generator.get_data)
     real_time_plot.run()
