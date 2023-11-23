@@ -26,6 +26,6 @@ class ZMQDataSource:
         message.ParseFromString(data)
 
         # edit the following line when using
-        newDataTime = message.imu_data.recorded_time / 1000000
+        newDataTime = message.imu_data.recorded_time
         data_point_y = message.imu_data.gyroscope.x  # edit this when using
         return [newDataTime, data_point_y]

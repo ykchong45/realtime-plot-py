@@ -5,7 +5,7 @@ import time
 from data_sources.zmq_data_source import ZMQDataSource
 
 class RealTimeScatterPlot:
-    def __init__(self, fetch_data_fns, buffer_size=1000, fps_sample_size=1000, fps_report_rate=100, xlim=[-1000, 10], ylim=[-1, 1]):
+    def __init__(self, fetch_data_fns, buffer_size=1000, vline_buffer_size=10, fps_sample_size=1000, fps_report_rate=100, xlim=[-1000, 10], ylim=[-1, 1]):
         self.fetch_data_fns = fetch_data_fns
         self.num_series = len(fetch_data_fns)
         self.buffer_size = buffer_size
@@ -48,12 +48,13 @@ class RealTimeScatterPlot:
                 fps = (i - self.fps_sample_start_frame) / elapsed_time
                 print("fps: {}".format(fps))
 
-    def update_plot(self, data_points, i):
+    def update_plot(self, data_points, i, update_xlim=False, new_xlim=None):
         if (self.old_fig_size != self.fig.get_size_inches()).any():
             self.bg = self.fig.canvas.copy_from_bbox(self.fig.bbox)
             self.old_fig_size = self.fig.get_size_inches()
         self.fig.canvas.restore_region(self.bg)
 
+        # Update scatter plots
         for series_index, (data_point_x, data_point_y) in enumerate(data_points):
             # recalculate shifted horizontal value
             if not self.last_horizontal_ticks[series_index]:
@@ -74,7 +75,12 @@ class RealTimeScatterPlot:
 
             # Update scatter plots for each series
             self.scatters[series_index].set_offsets(np.column_stack((self.x_series[series_index], self.y_series[series_index])))
+
             self.ax.draw_artist(self.scatters[series_index])
+
+            # Update xlim if requested
+            if update_xlim and new_xlim:
+                self.ax.set_xlim(new_xlim)
 
         self.fig.canvas.blit(self.fig.clipbox)
         self.fig.canvas.flush_events()
@@ -86,7 +92,15 @@ class RealTimeScatterPlot:
         while True:
             # Fetch data for each series
             data_points = [fetch_data_fn() for fetch_data_fn in self.fetch_data_fns]
-            self.update_plot(data_points, i)
+            
+            # every 100 data we adjust the xlim
+            if i % 100 == 0:
+                new_xlim = [self.x_series[0][0], 100]
+                print(new_xlim)
+                self.update_plot(data_points, i, update_xlim=True, new_xlim=new_xlim)
+            else:
+                self.update_plot(data_points, i)
+
             i += 1
 
 # Usage
