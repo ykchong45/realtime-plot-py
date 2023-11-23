@@ -5,7 +5,9 @@ import time
 from data_sources.zmq_data_source import ZMQDataSource
 
 class RealTimeScatterPlot:
-    def __init__(self, fetch_data_fns, buffer_size=1000, vline_buffer_size=10, fps_sample_size=1000, fps_report_rate=100, xlim=[-1000, 10], ylim=[-1, 1]):
+    def __init__(self, fetch_data_fns, buffer_size=1000, fps_sample_size=1000, fps_report_rate=100, xlim=[-1000, 10], ylim=[-1, 1]):
+        xlim = [-buffer_size, 10]
+
         self.fetch_data_fns = fetch_data_fns
         self.num_series = len(fetch_data_fns)
         self.buffer_size = buffer_size
@@ -21,8 +23,13 @@ class RealTimeScatterPlot:
         self.ax.set_xlim(xlim)
         self.ax.set_ylim(ylim)
 
+        self.ax.grid(True)
+        
         # Create scatter plots for each series
         self.scatters = [self.ax.scatter([], [], animated=True, s=1) for _ in range(self.num_series)]
+
+        # Create a text area
+        self.text = self.ax.text(0.8,0.5, "")
 
         plt.title("Realtime Scatter Plot")
         plt.show(block=False)
@@ -81,11 +88,15 @@ class RealTimeScatterPlot:
             # Update xlim if requested
             if update_xlim and new_xlim:
                 self.ax.set_xlim(new_xlim)
+        
+        self.calculate_fps(i)
+
+        self.text.set_text("{}".format(i))
+        self.ax.draw_artist(self.text)
 
         self.fig.canvas.blit(self.fig.clipbox)
         self.fig.canvas.flush_events()
 
-        self.calculate_fps(i)
 
     def run(self):
         i = 0
@@ -96,7 +107,6 @@ class RealTimeScatterPlot:
             # every 100 data we adjust the xlim
             if i % 100 == 0:
                 new_xlim = [self.x_series[0][0], 100]
-                print(new_xlim)
                 self.update_plot(data_points, i, update_xlim=True, new_xlim=new_xlim)
             else:
                 self.update_plot(data_points, i)
@@ -106,6 +116,9 @@ class RealTimeScatterPlot:
 # Usage
 if __name__ == "__main__":
     # Example: Create an array of data sources
-    data_sources = [ZMQDataSource(7002)]
-    real_time_plot = RealTimeScatterPlot([ds.get_data for ds in data_sources], ylim=[-180, 180])
+    d0 = ZMQDataSource(["fused_pose", "timestamp"], ["fused_pose", "angular_velocity", "x"], 8799)
+    d40 = ZMQDataSource(["fused_pose", "timestamp"], ["fused_pose", "angular_velocity", "x"], 8801)
+    data_sources = [d0, d40]
+    
+    real_time_plot = RealTimeScatterPlot([ds.get_data for ds in data_sources], buffer_size=200, ylim=[-180, 180])
     real_time_plot.run()
